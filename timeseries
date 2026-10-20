@@ -1,0 +1,276 @@
+# Experiment 10: Time Series Analysis
+# Stationarity Differencing and Augmented Dickey-Fuller Test
+
+# Read the monthly births dataset
+births <- scan(
+  "https://robjhyndman.com/tsdldata/data/nybirths.dat"
+)
+
+# Display the data
+births
+
+# Convert the data into a time series
+births_TS <- ts(
+  births,
+  frequency = 12,
+  start = c(1946, 1)
+)
+
+# Display the time series
+births_TS
+
+# Plot monthly births in New York City (1946-1959)
+plot.ts(
+  births_TS,
+  main = "Monthly Births in New York City (1946-1959)",
+  xlab = "Time",
+  ylab = "Number of Births"
+)
+
+# Display the dataset
+AirPassengers
+
+# Plot the original time series
+plot(
+  AirPassengers,
+  main = "AirPassengers",
+  xlab = "Time",
+  ylab = "Passengers"
+)
+
+# Load the package containing the ADF test
+library(tseries)
+
+# ADF test on the original data
+adf.test(AirPassengers)
+
+# Log transformation
+log_passengers <- log(AirPassengers)
+
+# Plot log-transformed data
+plot(
+  log_passengers,
+  main = "Log(AirPassengers)",
+  xlab = "Time",
+  ylab = "Log(Passengers)"
+)
+
+# ADF test on log-transformed data
+adf.test(log_passengers)
+
+# First difference of the log-transformed data
+diff_log_passengers <- diff(log_passengers)
+
+# Plot first-differenced log data
+plot(
+  diff_log_passengers,
+  main = "First Difference of Log(AirPassengers)",
+  xlab = "Time",
+  ylab = "Difference"
+)
+
+# ADF test on first-differenced log data
+adf.test(diff_log_passengers)
+
+# Second difference of the log-transformed data
+diff2_log_passengers <- diff(diff(log_passengers))
+
+# Plot second-differenced log data
+plot(
+  diff2_log_passengers,
+  main = "Second Difference of Log(AirPassengers)",
+  xlab = "Time",
+  ylab = "Difference"
+)
+
+# ADF test on second-differenced log data
+adf.test(diff2_log_passengers)
+
+# First difference of the original data
+diff_passengers <- diff(AirPassengers)
+
+# Plot first difference of original data
+plot(
+  diff_passengers,
+  main = "First Difference of AirPassengers",
+  xlab = "Time",
+  ylab = "Difference"
+)
+
+# ADF test on first difference of original data
+adf.test(diff_passengers)
+
+# Second difference of the original data
+diff2_passengers <- diff(diff(AirPassengers))
+
+# Plot second difference of original data
+plot(
+  diff2_passengers,
+  main = "Second Difference of AirPassengers",
+  xlab = "Time",
+  ylab = "Difference"
+)
+
+# ADF test on second difference of original data
+adf.test(diff2_passengers)
+
+# Load required libraries
+library(ggplot2)
+library(tseries)
+library(forecast)
+library(dplyr)
+library(gridExtra)
+
+# Download US GDP data from FRED
+gdp_url <- "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GDP"
+
+# Read CSV data
+gdp_raw <- read.csv(
+  gdp_url,
+  stringsAsFactors = FALSE
+)
+
+# Rename columns
+names(gdp_raw) <- c("date", "GDP")
+
+# Convert columns to appropriate data types
+gdp_raw$date <- as.Date(gdp_raw$date)
+gdp_raw$GDP <- as.numeric(gdp_raw$GDP)
+
+# Filter data from 2000 to 2023
+gdp_df <- gdp_raw %>%
+  filter(
+    date >= as.Date("2000-01-01"),
+    date <= as.Date("2023-12-31")
+  ) %>%
+  na.omit()
+
+# Display the filtered dataset
+head(gdp_df)
+
+p1 <- ggplot(
+  gdp_df,
+  aes(x = date, y = GDP)
+) +
+  geom_line(color = "darkblue", size = 1) +
+  labs(
+    title = "US GDP (Level)",
+    subtitle = "Non-stationary",
+    x = "Date",
+    y = "GDP"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold"
+    ),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+
+# Display the plot
+p1
+
+# Calculate GDP growth rate
+gdp_growth_df <- gdp_df %>%
+  arrange(date) %>%
+  mutate(
+    growth = 100 * (GDP / lag(GDP) - 1)
+  ) %>%
+  na.omit()
+
+# Plot GDP growth rate
+p2 <- ggplot(
+  gdp_growth_df,
+  aes(x = date, y = growth)
+) +
+  geom_line(color = "darkgreen", size = 1) +
+  geom_hline(
+    yintercept = 0,
+    color = "red",
+    linetype = "dashed"
+  ) +
+  labs(
+    title = "US GDP Growth Rate",
+    subtitle = "Quarter-over-quarter percentage growth",
+    x = "Date",
+    y = "Growth (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      face = "bold"
+    ),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+
+# Display the plot
+p2
+
+# Convert GDP values into a quarterly time series
+gdp_ts <- ts(
+  gdp_df$GDP,
+  start = c(
+    as.integer(format(gdp_df$date[1], "%Y")),
+    (as.integer(format(gdp_df$date[1], "%m")) - 1) %/% 3 + 1
+  ),
+  frequency = 4
+)
+
+# ADF test on original GDP
+adf.test(gdp_ts)
+
+# ADF test on GDP growth
+adf.test(gdp_growth_df$growth)
+
+# First difference of GDP
+diff_gdp <- diff(gdp_ts)
+
+# Plot differenced GDP
+plot(
+  diff_gdp,
+  main = "First Difference of US GDP",
+  xlab = "Time",
+  ylab = "Difference in GDP"
+)
+
+# ADF test on differenced GDP
+adf.test(diff_gdp)
+
+# Second difference of GDP
+diff2_gdp <- diff(diff_gdp)
+
+# Plot second-differenced GDP
+plot(
+  diff2_gdp,
+  main = "Second Difference of US GDP",
+  xlab = "Time",
+  ylab = "Second Difference"
+)
+
+# ADF test on second-differenced GDP
+adf.test(diff2_gdp)
+
+
+# Install packages if required
+packages <- c(
+  "ggplot2",
+  "tseries",
+  "forecast",
+  "dplyr",
+  "gridExtra"
+)
+
+for (pkg in packages) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
+# Load libraries
+library(ggplot2)
+library(tseries)
+library(forecast)
+library(dplyr)
+library(gridExtra)
